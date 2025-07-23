@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction:
 
-In recent years, there has been an alarming increase in hate crimes and shooting incidents across the United States. This issue has sparked national debates and civil unrest among the population, making it increasingly crucial to gain a better understanding of criminal activity through the statistical analysis of available data. In this analysis, we will be using the New York City Shooting Incidents data set, which includes demographics of shootings that occurred in New York City starting at 2006. This includes the sex, race, age, etc of both the victims and the perpetrator. Using this dataset, we will explore the NYPD Shooting Incident data to identify patterns, relationships, and trends in the criminal activity, and generate insights. 
+In recent years, there has been an alarming increase in hate crimes and shooting incidents across the United States. This issue has sparked national debates and civil unrest among the population, making it increasingly crucial to gain a better understanding of criminal activity through the statistical analysis of available data. In this analysis, I will be using the New York City Shooting Incidents data set, which includes demographics of shootings that occurred in New York City starting at 2006. This includes the sex, race, age, etc of both the victims and the perpetrator. Using this dataset, I will explore the NYPD Shooting Incident data to identify patterns, relationships, and trends in the criminal activity, and generate insights. 
 
 If you would like to do your own analysis on this dataset, please refer to the following link: https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD
 
