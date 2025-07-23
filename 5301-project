@@ -1,0 +1,162 @@
+---
+title: "NYPD Report"
+output:
+  pdf_document: default
+---
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction:
+
+In recent years, there has been an alarming increase in hate crimes and shooting incidents across the United States. This issue has sparked national debates and civil unrest among the population, making it increasingly crucial to gain a better understanding of criminal activity through the statistical analysis of available data. In this analysis, we will be using the New York City Shooting Incidents data set, which includes demographics of shootings that occurred in New York City starting at 2006. This includes the sex, race, age, etc of both the victims and the perpetrator. Using this dataset, we will explore the NYPD Shooting Incident data to identify patterns, relationships, and trends in the criminal activity, and generate insights. 
+
+If you would like to do your own analysis on this dataset, please refer to the following link: https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD
+
+Before I begin, I need to install these packages: tidyverse, lubridate, ggplot2, gridExtra, knitr
+
+```{r packages}
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(gridExtra)
+library(knitr)
+```
+
+```{r csv_file_read}
+nypd_shooting <- read_csv("https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD")
+```
+
+```{r visualize_head}
+head(nypd_shooting, 10)
+```
+
+## Data Preparation and Cleaning
+
+```{r renaming_date_and_time}
+nypd_shooting <- nypd_shooting %>%
+  rename(Date = OCCUR_DATE,
+         Time = OCCUR_TIME)
+```
+
+```{r missing_vals}
+nypd_shooting <- nypd_shooting %>% 
+  mutate(across(-Time, ~ifelse(is.na(.), "N/A", .)))
+```
+
+```{r am_i_missing_any_missing_vals}
+sum(is.na(nypd_shooting))
+```
+
+```{r data_so_far}
+head(nypd_shooting, 10)
+```
+
+```{r double_checking_for_duplicates}
+duplicated_rows <- nypd_shooting[duplicated(nypd_shooting),]
+nypd_shooting <- distinct(nypd_shooting)
+nrow(nypd_shooting)
+```
+
+```{r unicorn_vals_in_BORO}
+unique(nypd_shooting$BORO)
+nypd_shooting$Date <- as.Date(nypd_shooting$Date, format = "%m/%d/%Y")
+```
+
+```{r table_after_cleaning}
+head(nypd_shooting, 10)
+```
+
+```{r date_datatype}
+class(nypd_shooting$Date)
+```
+
+```{r BORO_column}
+nypd_shooting <- nypd_shooting %>%
+ mutate(Population = case_when(
+    BORO == "BROOKLYN" ~ 2576771,
+    BORO == "QUEENS" ~ 2270976,
+    BORO == "BRONX" ~ 1427056,
+    BORO == "MANHATTAN" ~ 1629153,
+    BORO == "STATEN ISLAND" ~ 475596,
+    TRUE ~ NA_real_
+  ))
+head(nypd_shooting, 10)
+```
+
+
+## Slides Used
+
+
+```{r age_slide}
+valid_age_groups <- c("<18", "18-24", "25-44", "45-64", "65+")
+
+nypd_shooting <- nypd_shooting %>%
+  mutate(
+    VIC_AGE_GROUP = ifelse(VIC_AGE_GROUP %in% valid_age_groups, VIC_AGE_GROUP, "UNKNOWN"),
+    PERP_AGE_GROUP = ifelse(PERP_AGE_GROUP %in% valid_age_groups, PERP_AGE_GROUP, "UNKNOWN")
+  )
+
+victim_ages <- nypd_shooting %>%
+  count(Age_Range = VIC_AGE_GROUP) %>%
+  mutate(Role = "Victim")
+
+perp_ages <- nypd_shooting %>%
+  count(Age_Range = PERP_AGE_GROUP) %>%
+  mutate(Role = "Perpetrator")
+
+age_data <- bind_rows(victim_ages, perp_ages) %>%
+  mutate(Age_Range = factor(Age_Range, levels = c("<18", "18-24", "25-44", "45-64", "65+", "UNKNOWN")))
+
+ggplot(age_data, aes(x = Age_Range, y = n, fill = Role)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(title = "Age Range Distribution of Victims and Perpetrators",
+       x = "Age Range",
+       y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r location_slide}
+nypd_shooting$Date <- as.Date(nypd_shooting$Date, format = "%m/%d/%Y")
+
+nypd_shooting <- nypd_shooting %>%
+  mutate(Year = year(Date))
+
+borough_year <- nypd_shooting %>%
+  filter(!is.na(BORO), BORO != "") %>%
+  group_by(BORO, Year) %>%
+  summarise(Total_Shootings = n(), .groups = "drop")
+
+ggplot(borough_year, aes(x = Year, y = Total_Shootings, color = BORO)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  labs(title = "Total Shootings per Year by Borough",
+       x = "Year", y = "Total Shootings",
+       color = "Borough") +
+  theme_minimal() +
+  scale_x_continuous(breaks = unique(borough_year$Year)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r total_shootings_over_time_slide}
+nypd_shooting$Date <- as.Date(nypd_shooting$Date, format = "%m/%d/%Y")
+
+nypd_shooting <- nypd_shooting %>%
+  mutate(Year = lubridate::year(Date))
+
+shootings_per_year <- nypd_shooting %>%
+  group_by(Year) %>%
+  summarise(Total_Shootings = n()) %>%
+  filter(!is.na(Year))
+
+ggplot(shootings_per_year, aes(x = Year, y = Total_Shootings)) +
+  geom_line(color = "steelblue", size = 1) +
+  geom_point(color = "steelblue", size = 2) +
+  geom_smooth(method = "lm", se = FALSE, color = "red", linetype = "dashed") +
+  labs(title = "Total NYPD Shootings per Year",
+       x = "Year",
+       y = "Total Shootings") +
+  theme_minimal()
+```
